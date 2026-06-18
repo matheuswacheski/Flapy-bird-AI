@@ -53,11 +53,11 @@ def plot_training_history(scores: List[int]) -> None:
     generations = np.arange(1, len(scores) + 1)
 
     plt.figure(figsize=(10, 6))
-    plt.plot(scores, generations, marker="o")
-    plt.scatter(scores, generations)
+    plt.plot(generations, scores, marker="o")
+    plt.scatter(generations, scores)
 
-    plt.xlabel("Score")
-    plt.ylabel("Geração")
+    plt.xlabel("Geração")
+    plt.ylabel("Score")
     plt.title("Score por geração")
     plt.grid(True)
     plt.tight_layout()
