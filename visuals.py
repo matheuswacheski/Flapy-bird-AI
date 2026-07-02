@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pygame
 
-from settings import BIG_FONT, FONT, SKY_BLUE, WHITE
+import settings
 
 
 def draw_window(
@@ -22,7 +22,10 @@ def draw_window(
     mutation_rate: float,
     mode_label: str = "Treinamento",
 ) -> None:
-    win.fill(SKY_BLUE)
+    if settings.FONT is None:
+        settings.init_pygame()
+
+    win.fill(settings.SKY_BLUE)
 
     for pipe in pipes:
         pipe.draw(win)
@@ -43,7 +46,7 @@ def draw_window(
     ]
 
     for i, text in enumerate(lines):
-        surf = FONT.render(text, True, WHITE)
+        surf = settings.FONT.render(text, True, settings.WHITE)
         win.blit(surf, (10, 10 + i * 28))
 
     pygame.display.update()

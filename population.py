@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass, field
 from typing import List
@@ -19,7 +18,7 @@ from settings import (
     POPULATION_SIZE,
     SPECIES_THRESHOLD,
 )
-from species import Species, speciate
+from species import speciate
 
 
 @dataclass
@@ -31,6 +30,7 @@ class GeneticPopulation:
     mutation_rate: float = MUTATION_RATE_START
     mutation_scale: float = MUTATION_SCALE_START
     stagnation: int = 0
+    last_species_count: int = 0
 
     def __post_init__(self) -> None:
         if not self.genomes:
@@ -75,6 +75,7 @@ class GeneticPopulation:
         self._adapt_mutation(generation_best.fitness)
 
         species = speciate(ordered, SPECIES_THRESHOLD)
+        self.last_species_count = len(species)
 
         elite_count = max(ELITE_MIN, int(self.size * ELITE_RATIO))
         elite_count = min(elite_count, ELITE_MAX, self.size)

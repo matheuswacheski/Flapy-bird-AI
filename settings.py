@@ -1,6 +1,11 @@
-import pygame
+from __future__ import annotations
 
-pygame.init()
+import random
+from pathlib import Path
+
+import numpy as np
+import pygame
+import torch
 
 WIDTH = 600
 HEIGHT = 800
@@ -27,8 +32,8 @@ PIPE_BASE_SPEED = 4.0
 PIPE_SPEED_INCREASE = 0.15
 PIPE_MAX_SPEED = 12.0
 
-PIPE_SPAWN_FRAMES = 90
 PIPE_WIDTH = 80
+PIPE_START_X = WIDTH + 120
 PIPE_GAP_NORMAL = 190
 
 PIPE_MIN_H = 80
@@ -49,6 +54,11 @@ FITNESS_CENTER_BONUS = 1.0
 FITNESS_VELOCITY_BONUS = 0.25
 FITNESS_DEATH_PENALTY = 6.0
 
+DEFAULT_SEED: int | None = None
+RENDER_TRAINING = True
+FPS_LIMIT: int | None = FPS
+BEST_GENOME_PATH = Path("models/best_genome.pt")
+
 SKY_BLUE = (135, 206, 235)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -57,10 +67,39 @@ GREEN = (0, 180, 0)
 DARK_GREEN = (0, 120, 0)
 GROUND = (222, 216, 149)
 
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Flappy Bird - Seleção Natural")
+WIN: pygame.Surface | None = None
+FONT: pygame.font.Font | None = None
+BIG_FONT: pygame.font.Font | None = None
+CLOCK: pygame.time.Clock | None = None
 
-FONT = pygame.font.SysFont("Arial", 26)
-BIG_FONT = pygame.font.SysFont("Arial", 34)
 
-CLOCK = pygame.time.Clock()
+def set_seed(seed: int | None) -> None:
+    if seed is None:
+        return
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def init_pygame() -> tuple[pygame.Surface, pygame.time.Clock]:
+    global WIN, FONT, BIG_FONT, CLOCK
+
+    if not pygame.get_init():
+        pygame.init()
+
+    if not pygame.font.get_init():
+        pygame.font.init()
+
+    if WIN is None:
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption("Flappy Bird - Seleção Natural")
+
+    if FONT is None:
+        FONT = pygame.font.SysFont("Arial", 26)
+    if BIG_FONT is None:
+        BIG_FONT = pygame.font.SysFont("Arial", 34)
+    if CLOCK is None:
+        CLOCK = pygame.time.Clock()
+
+    return WIN, CLOCK

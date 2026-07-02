@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
 
 import numpy as np
 import torch
 
-from settings import INPUT_SIZE, H1, H2, H3
+from settings import H1, H2, H3, INPUT_SIZE
 
 
 @dataclass
@@ -23,7 +22,8 @@ class Genome:
 
     @staticmethod
     def _rand(shape):
-        return torch.empty(shape, dtype=torch.float32).uniform_(-1.0, 1.0)
+        with torch.no_grad():
+            return torch.empty(shape, dtype=torch.float32).uniform_(-1.0, 1.0)
 
     @staticmethod
     def random_genome() -> "Genome":
@@ -53,24 +53,26 @@ class Genome:
         )
 
     def forward(self, x: torch.Tensor) -> float:
-        x = x.to(dtype=torch.float32)
+        with torch.no_grad():
+            x = x.to(dtype=torch.float32)
 
-        h1 = torch.tanh(self.w1 @ x + self.b1)
-        h2 = torch.tanh(self.w2 @ h1 + self.b2)
-        h3 = torch.tanh(self.w3 @ h2 + self.b3)
-        out = torch.tanh(self.w4 @ h3 + self.b4)
+            h1 = torch.tanh(self.w1 @ x + self.b1)
+            h2 = torch.tanh(self.w2 @ h1 + self.b2)
+            h3 = torch.tanh(self.w3 @ h2 + self.b3)
+            out = torch.tanh(self.w4 @ h3 + self.b4)
 
-        return float(out.squeeze().item())
+            return float(out.squeeze().item())
 
     def mutate(self, mutation_rate: float, mutation_scale: float) -> None:
-        self._mutate_tensor(self.w1, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.b1, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.w2, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.b2, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.w3, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.b3, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.w4, mutation_rate, mutation_scale)
-        self._mutate_tensor(self.b4, mutation_rate, mutation_scale)
+        with torch.no_grad():
+            self._mutate_tensor(self.w1, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.b1, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.w2, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.b2, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.w3, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.b3, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.w4, mutation_rate, mutation_scale)
+            self._mutate_tensor(self.b4, mutation_rate, mutation_scale)
 
     @staticmethod
     def _mutate_tensor(t: torch.Tensor, mutation_rate: float, mutation_scale: float) -> None:
@@ -86,17 +88,18 @@ class Genome:
             mask = torch.rand_like(t1) < 0.5
             return torch.where(mask, t1, t2)
 
-        return Genome(
-            w1=mix(a.w1, b.w1),
-            b1=mix(a.b1, b.b1),
-            w2=mix(a.w2, b.w2),
-            b2=mix(a.b2, b.b2),
-            w3=mix(a.w3, b.w3),
-            b3=mix(a.b3, b.b3),
-            w4=mix(a.w4, b.w4),
-            b4=mix(a.b4, b.b4),
-            fitness=0.0,
-        )
+        with torch.no_grad():
+            return Genome(
+                w1=mix(a.w1, b.w1),
+                b1=mix(a.b1, b.b1),
+                w2=mix(a.w2, b.w2),
+                b2=mix(a.b2, b.b2),
+                w3=mix(a.w3, b.w3),
+                b3=mix(a.b3, b.b3),
+                w4=mix(a.w4, b.w4),
+                b4=mix(a.b4, b.b4),
+                fitness=0.0,
+            )
 
     def distance(self, other: "Genome") -> float:
         pairs = [
@@ -109,10 +112,10 @@ class Genome:
             (self.w4, other.w4),
             (self.b4, other.b4),
         ]
-        values = []
-        for a, b in pairs:
-            values.append(np.mean(np.abs(a.detach().cpu().numpy() - b.detach().cpu().numpy())))
-        return float(np.mean(values))
+
+        with torch.no_grad():
+            values = [torch.mean(torch.abs(a - b)) for a, b in pairs]
+            return float(torch.mean(torch.stack(values)).item())
 
     def save(self, path: str) -> None:
         torch.save(
@@ -132,7 +135,11 @@ class Genome:
 
     @staticmethod
     def load(path: str) -> "Genome":
-        data = torch.load(path, map_location="cpu")
+        try:
+            data = torch.load(path, map_location="cpu", weights_only=True)
+        except TypeError:
+            data = torch.load(path, map_location="cpu")
+
         return Genome(
             w1=data["w1"],
             b1=data["b1"],

@@ -7,21 +7,16 @@ import pygame
 from entities import Base, Bird, Pipe
 from genome import Genome
 from settings import (
-    CLOCK,
     FITNESS_CENTER_BONUS,
     FITNESS_DEATH_PENALTY,
     FITNESS_PASS_PIPE,
     FITNESS_SURVIVE,
     FITNESS_VELOCITY_BONUS,
-    GROUND_Y,
-    HEIGHT,
-    PIPE_SPAWN_FRAMES,
-    PIPE_WIDTH,
-    WIDTH,
     FPS,
-    FONT,
-    WIN,
+    GROUND_Y,
     MAX_FALL_SPEED,
+    PIPE_START_X,
+    init_pygame,
 )
 from visuals import draw_window
 
@@ -39,9 +34,12 @@ def run_generation(
     best_score_global: int,
     species_count: int,
     mutation_rate: float,
+    render: bool = True,
+    fps_limit: int | None = FPS,
 ) -> Tuple[int, int]:
+    win, clock = init_pygame()
     birds = [Bird(g) for g in genomes]
-    pipes = [Pipe(700)]
+    pipes = [Pipe(PIPE_START_X)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -49,7 +47,8 @@ def run_generation(
     running = True
 
     while running:
-        CLOCK.tick(FPS)
+        if fps_limit is not None:
+            clock.tick(fps_limit)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -91,7 +90,7 @@ def run_generation(
                 pipes.remove(pipe)
 
         if len(pipes) == 0:
-            pipes.append(Pipe(WIDTH + 120))
+            pipes.append(Pipe(PIPE_START_X))
             reference_pipe = pipes[0]
 
         center = reference_pipe.gap_center
@@ -117,27 +116,29 @@ def run_generation(
         if add_pipe:
             score += 1
             for bird in birds:
+                bird.score += 1
                 bird.genome.fitness += FITNESS_PASS_PIPE
-            pipes.append(Pipe(WIDTH + 120))
+            pipes.append(Pipe(PIPE_START_X))
 
         base.move()
 
         if score > best_score_global:
             best_score_global = score
 
-        draw_window(
-            WIN,
-            birds,
-            pipes,
-            base,
-            generation=generation,
-            score=score,
-            alive=len(birds),
-            best_score=best_score_global,
-            species_count=species_count,
-            mutation_rate=mutation_rate,
-            mode_label="Treinamento",
-        )
+        if render:
+            draw_window(
+                win,
+                birds,
+                pipes,
+                base,
+                generation=generation,
+                score=score,
+                alive=len(birds),
+                best_score=best_score_global,
+                species_count=species_count,
+                mutation_rate=mutation_rate,
+                mode_label="Treinamento",
+            )
 
         if len(birds) == 0:
             running = False
@@ -146,8 +147,9 @@ def run_generation(
 
 
 def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
+    win, clock = init_pygame()
     bird = Bird(best_genome.clone())
-    pipes = [Pipe(700)]
+    pipes = [Pipe(PIPE_START_X)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -156,7 +158,7 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
     best_score = 0
 
     while running and frame < max_frames:
-        CLOCK.tick(FPS)
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -191,18 +193,15 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
                 pipes.remove(pipe)
 
         if len(pipes) == 0:
-            pipes.append(Pipe(700))
-            reference_pipe = pipes[0]
-
-        center = reference_pipe.gap_center
-        bird.genome.fitness += 0.0
+            pipes.append(Pipe(PIPE_START_X))
 
         if bird.y < 0 or bird.y >= GROUND_Y:
             running = False
 
         if add_pipe:
             score += 1
-            pipes.append(Pipe(700))
+            bird.score += 1
+            pipes.append(Pipe(PIPE_START_X))
 
         base.move()
 
@@ -210,7 +209,7 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
             best_score = score
 
         draw_window(
-            WIN,
+            win,
             [bird],
             pipes,
             base,

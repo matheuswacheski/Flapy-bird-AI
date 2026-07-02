@@ -13,6 +13,7 @@ from settings import (
     GREEN,
     GROUND,
     GROUND_Y,
+    GRAVITY,
     HEIGHT,
     JUMP_FORCE,
     MAX_FALL_SPEED,
@@ -21,13 +22,10 @@ from settings import (
     PIPE_MAX_H,
     PIPE_MAX_SPEED,
     PIPE_MIN_H,
-    PIPE_SPAWN_FRAMES,
     PIPE_SPEED_INCREASE,
     PIPE_WIDTH,
-    SKY_BLUE,
-    WHITE,
+    WIDTH,
     YELLOW,
-    GRAVITY,
 )
 
 
@@ -56,7 +54,7 @@ class Bird:
             [
                 self.y / HEIGHT,
                 self.vel / MAX_FALL_SPEED,
-                (pipe.x - self.x) / HEIGHT,
+                (pipe.x - self.x) / WIDTH,
                 (self.y - pipe.top) / HEIGHT,
                 (pipe.bottom - self.y) / HEIGHT,
                 (pipe.gap_center - self.y) / HEIGHT,
@@ -170,16 +168,16 @@ class Base:
     def __init__(self, y: int):
         self.y = y
         self.x1 = 0
-        self.x2 = 600
+        self.x2 = WIDTH
 
     def move(self) -> None:
         self.x1 -= self.VEL
         self.x2 -= self.VEL
-        if self.x1 + 600 < 0:
-            self.x1 = self.x2 + 600
-        if self.x2 + 600 < 0:
-            self.x2 = self.x1 + 600
+        if self.x1 + WIDTH < 0:
+            self.x1 = self.x2 + WIDTH
+        if self.x2 + WIDTH < 0:
+            self.x2 = self.x1 + WIDTH
 
     def draw(self, win: pygame.Surface) -> None:
-        pygame.draw.rect(win, GROUND, (self.x1, self.y, 600, HEIGHT - self.y))
-        pygame.draw.rect(win, GROUND, (self.x2, self.y, 600, HEIGHT - self.y))
+        pygame.draw.rect(win, GROUND, (self.x1, self.y, WIDTH, HEIGHT - self.y))
+        pygame.draw.rect(win, GROUND, (self.x2, self.y, WIDTH, HEIGHT - self.y))
