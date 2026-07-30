@@ -75,15 +75,16 @@ class Bird:
 class Pipe:
     WIDTH = PIPE_WIDTH
 
-    def __init__(self, x: float):
+    def __init__(self, x: float, rng: random.Random | None = None):
         self.x = float(x)
-        self.kind = random.choices(
+        self._rng = rng or random
+        self.kind = self._rng.choices(
             ["normal", "moving", "narrow", "wide"],
             weights=[0.45, 0.20, 0.20, 0.15],
             k=1,
         )[0]
 
-        self.base_height = random.randint(PIPE_MIN_H, PIPE_MAX_H)
+        self.base_height = self._rng.randint(PIPE_MIN_H, PIPE_MAX_H)
         self.frame = 0
         self.current_speed = 0.0
         self.passed = False
