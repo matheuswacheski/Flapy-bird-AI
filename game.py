@@ -37,28 +37,30 @@ def run_generation(
     render: bool = True,
     fps_limit: int | None = FPS,
 ) -> Tuple[int, int]:
-    win, clock = init_pygame()
+    win: pygame.Surface | None = None
+    clock: pygame.time.Clock | None = None
+    if render:
+        win, clock = init_pygame()
+
     birds = [Bird(g) for g in genomes]
     pipes = [Pipe(PIPE_START_X)]
     base = Base(GROUND_Y)
 
     score = 0
-    frame = 0
     running = True
 
     while running:
-        if fps_limit is not None:
+        if clock is not None and fps_limit is not None:
             clock.tick(fps_limit)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                raise SystemExit
+        if render:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    raise SystemExit
 
-        if len(birds) == 0:
+        if not birds:
             break
-
-        frame += 1
 
         reference_pipe = _best_pipe_for_bird(pipes, birds[0].x)
 
@@ -86,10 +88,9 @@ def run_generation(
                 removed_pipes.append(pipe)
 
         for pipe in removed_pipes:
-            if pipe in pipes:
-                pipes.remove(pipe)
+            pipes.remove(pipe)
 
-        if len(pipes) == 0:
+        if not pipes:
             pipes.append(Pipe(PIPE_START_X))
             reference_pipe = pipes[0]
 
@@ -97,11 +98,13 @@ def run_generation(
 
         for bird in birds:
             bird.genome.fitness += FITNESS_SURVIVE
-
             distance = abs(bird.y - center)
             bird.genome.fitness += max(0.0, FITNESS_CENTER_BONUS - distance / 300.0)
-
-            velocity_bonus = max(0.0, FITNESS_VELOCITY_BONUS - abs(bird.vel) / MAX_FALL_SPEED * FITNESS_VELOCITY_BONUS)
+            velocity_bonus = max(
+                0.0,
+                FITNESS_VELOCITY_BONUS
+                - abs(bird.vel) / MAX_FALL_SPEED * FITNESS_VELOCITY_BONUS,
+            )
             bird.genome.fitness += velocity_bonus
 
         for i, bird in enumerate(birds):
@@ -110,8 +113,7 @@ def run_generation(
                 dead_indices.add(i)
 
         for idx in sorted(dead_indices, reverse=True):
-            if 0 <= idx < len(birds):
-                birds.pop(idx)
+            birds.pop(idx)
 
         if add_pipe:
             score += 1
@@ -125,7 +127,7 @@ def run_generation(
         if score > best_score_global:
             best_score_global = score
 
-        if render:
+        if render and win is not None:
             draw_window(
                 win,
                 birds,
@@ -140,7 +142,7 @@ def run_generation(
                 mode_label="Treinamento",
             )
 
-        if len(birds) == 0:
+        if not birds:
             running = False
 
     return score, best_score_global
@@ -166,7 +168,6 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
                 raise SystemExit
 
         frame += 1
-
         reference_pipe = _best_pipe_for_bird(pipes, bird.x)
 
         bird.think(reference_pipe)
@@ -189,10 +190,9 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
                 removed_pipes.append(pipe)
 
         for pipe in removed_pipes:
-            if pipe in pipes:
-                pipes.remove(pipe)
+            pipes.remove(pipe)
 
-        if len(pipes) == 0:
+        if not pipes:
             pipes.append(Pipe(PIPE_START_X))
 
         if bird.y < 0 or bird.y >= GROUND_Y:
@@ -204,9 +204,7 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
             pipes.append(Pipe(PIPE_START_X))
 
         base.move()
-
-        if score > best_score:
-            best_score = score
+        best_score = max(best_score, score)
 
         draw_window(
             win,
@@ -221,5 +219,3 @@ def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
             mutation_rate=0.0,
             mode_label="Replay do Campeão",
         )
-
-    return
