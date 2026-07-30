@@ -1,43 +1,64 @@
-# Flapy Bird AI
+# Flappy Bird AI
 
-Treinamento evolutivo de um Flappy Bird em Python, usando `pygame` para a simulação visual e `torch` para representar a rede neural de cada genoma.
+Treinamento evolutivo de agentes para Flappy Bird usando PyGame e PyTorch.
 
 ## Instalação
 
+Requer Python 3.10 ou superior.
+
 ```bash
+python -m venv .venv
+# Linux/macOS
+source .venv/bin/activate
+# Windows PowerShell
+.venv\\Scripts\\Activate.ps1
+
 pip install -r requirements.txt
 ```
 
 ## Execução
 
+Treinamento visual padrão:
+
 ```bash
 python main.py
 ```
 
-Por padrão, o treinamento roda com janela gráfica, limita a simulação a 60 FPS, salva o melhor genoma em `models/best_genome.pt` e faz um replay visual do campeão ao fim das gerações.
+Treinamento reproduzível e acelerado, sem criar janela, gráfico ou replay:
 
-Os principais parâmetros ficam em `settings.py`, incluindo tamanho da população, gerações, taxas de mutação, velocidade dos canos, seed padrão, renderização e caminho do melhor genoma.
-
-## Treino reproduzível ou acelerado
-
-O fluxo aceita seed, renderização e limite de FPS como argumentos:
-
-```python
-from train import run_training
-
-run_training(seed=42, render=False, fps_limit=None)
+```bash
+python main.py --headless --seed 42 --generations 100 --evaluation-seeds 42 137 911
 ```
 
-Use `render=False` e `fps_limit=None` para treinar sem desenhar cada frame. Mesmo nesse modo, `pygame` ainda precisa conseguir inicializar no ambiente em execução.
+Outras opções:
 
-## Checkpoint
-
-O melhor genoma é salvo automaticamente ao final do treino:
-
-```python
-from genome import Genome
-from game import replay_best
-
-best = Genome.load("models/best_genome.pt")
-replay_best(best)
+```text
+--save-path models/meu_genoma.pt
+--no-plot
+--no-replay
+--evaluation-seeds 42 137 911
 ```
+
+O melhor genoma é salvo em `models/best_genome.pt` por padrão.
+
+## Ajustes principais
+
+Os parâmetros de evolução, física, fitness, mutação e renderização ficam em
+`settings.py`. Use a mesma seed para comparar alterações no algoritmo de
+forma reprodutível.
+
+Cada geração é avaliada nos mesmos cenários definidos por `EVALUATION_SEEDS`; o fitness usado para seleção é a média desses resultados. O replay usa o primeiro cenário dessa lista, portanto é reproduzível.
+
+O gráfico separa a métrica da geração do melhor resultado histórico. Apenas as curvas de recorde acumulado são necessariamente não decrescentes.
+
+O treinamento visual respeita `FPS_LIMIT`; no modo headless não há limite de
+FPS e o PyGame não é inicializado.
+
+
+## Aprendizado progressivo
+
+O treino usa seleção por torneio, um Hall of Fame com os melhores genomas
+validados e um currículo de quatro estágios. Cada genoma é avaliado nas mesmas
+seeds; a fitness de seleção é a média menos uma penalidade pela variação entre
+cenários. Ajuste os estágios, o tamanho do Hall of Fame e a penalidade de
+variância em `settings.py`.

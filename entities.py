@@ -9,6 +9,7 @@ import torch
 from genome import Genome
 from settings import (
     BLACK,
+    CurriculumStage,
     DARK_GREEN,
     GREEN,
     GROUND,
@@ -66,14 +67,6 @@ class Bird:
         if output > 0.35:
             self.jump()
 
-    def rect(self) -> pygame.Rect:
-        return pygame.Rect(
-            int(self.x - self.RADIUS),
-            int(self.y - self.RADIUS),
-            self.RADIUS * 2,
-            self.RADIUS * 2,
-        )
-
     def draw(self, win: pygame.Surface) -> None:
         pygame.draw.circle(win, YELLOW, (int(self.x), int(self.y)), self.RADIUS)
         pygame.draw.circle(win, BLACK, (int(self.x + 7), int(self.y - 5)), 3)
@@ -83,15 +76,24 @@ class Bird:
 class Pipe:
     WIDTH = PIPE_WIDTH
 
-    def __init__(self, x: float):
+    def __init__(
+        self,
+        x: float,
+        rng: random.Random | None = None,
+        stage: CurriculumStage | None = None,
+    ):
         self.x = float(x)
-        self.kind = random.choices(
-            ["normal", "moving", "narrow", "wide"],
-            weights=[0.45, 0.20, 0.20, 0.15],
+        self._rng = rng or random
+        self.stage = stage
+        kinds = stage.pipe_kinds if stage else ("normal", "moving", "narrow", "wide")
+        weights = stage.pipe_weights if stage else (0.45, 0.20, 0.20, 0.15)
+        self.kind = self._rng.choices(
+            kinds,
+            weights=weights,
             k=1,
         )[0]
 
-        self.base_height = random.randint(PIPE_MIN_H, PIPE_MAX_H)
+        self.base_height = self._rng.randint(PIPE_MIN_H, PIPE_MAX_H)
         self.frame = 0
         self.current_speed = 0.0
         self.passed = False
@@ -117,6 +119,9 @@ class Pipe:
             self.osc_speed = 0.0
             self.speed_bonus = -0.15
 
+        gap_multiplier = stage.gap_multiplier if stage else 1.0
+        self.gap = int(self.gap * gap_multiplier)
+        self.speed_multiplier = stage.speed_multiplier if stage else 1.0
         self.height = self.base_height
         self.top = self.height
         self.bottom = self.height + self.gap
@@ -140,7 +145,7 @@ class Pipe:
         self.frame += 1
         self._sync_geometry()
 
-        self.current_speed = PIPE_BASE_SPEED + score * PIPE_SPEED_INCREASE + self.speed_bonus
+        self.current_speed = (PIPE_BASE_SPEED + score * PIPE_SPEED_INCREASE + self.speed_bonus) * self.speed_multiplier
         if self.current_speed > PIPE_MAX_SPEED:
             self.current_speed = PIPE_MAX_SPEED
 
@@ -153,10 +158,16 @@ class Pipe:
         pygame.draw.rect(win, DARK_GREEN, (self.x, self.bottom, self.WIDTH, GROUND_Y - self.bottom), 5)
 
     def collide(self, bird: Bird) -> bool:
-        bird_rect = bird.rect()
-        top_rect = pygame.Rect(int(self.x), 0, self.WIDTH, int(self.top))
-        bottom_rect = pygame.Rect(int(self.x), int(self.bottom), self.WIDTH, GROUND_Y - int(self.bottom))
-        return bird_rect.colliderect(top_rect) or bird_rect.colliderect(bottom_rect)
+        return self._circle_hits_rect(bird, 0, self.top) or self._circle_hits_rect(
+            bird, self.bottom, GROUND_Y
+        )
+
+    def _circle_hits_rect(self, bird: Bird, top: float, bottom: float) -> bool:
+        nearest_x = min(max(bird.x, self.x), self.x + self.WIDTH)
+        nearest_y = min(max(bird.y, top), bottom)
+        dx = bird.x - nearest_x
+        dy = bird.y - nearest_y
+        return dx * dx + dy * dy <= bird.RADIUS * bird.RADIUS
 
     def offscreen(self) -> bool:
         return self.x + self.WIDTH < 0
