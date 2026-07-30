@@ -66,14 +66,6 @@ class Bird:
         if output > 0.35:
             self.jump()
 
-    def rect(self) -> pygame.Rect:
-        return pygame.Rect(
-            int(self.x - self.RADIUS),
-            int(self.y - self.RADIUS),
-            self.RADIUS * 2,
-            self.RADIUS * 2,
-        )
-
     def draw(self, win: pygame.Surface) -> None:
         pygame.draw.circle(win, YELLOW, (int(self.x), int(self.y)), self.RADIUS)
         pygame.draw.circle(win, BLACK, (int(self.x + 7), int(self.y - 5)), 3)
@@ -153,10 +145,16 @@ class Pipe:
         pygame.draw.rect(win, DARK_GREEN, (self.x, self.bottom, self.WIDTH, GROUND_Y - self.bottom), 5)
 
     def collide(self, bird: Bird) -> bool:
-        bird_rect = bird.rect()
-        top_rect = pygame.Rect(int(self.x), 0, self.WIDTH, int(self.top))
-        bottom_rect = pygame.Rect(int(self.x), int(self.bottom), self.WIDTH, GROUND_Y - int(self.bottom))
-        return bird_rect.colliderect(top_rect) or bird_rect.colliderect(bottom_rect)
+        return self._circle_hits_rect(bird, 0, self.top) or self._circle_hits_rect(
+            bird, self.bottom, GROUND_Y
+        )
+
+    def _circle_hits_rect(self, bird: Bird, top: float, bottom: float) -> bool:
+        nearest_x = min(max(bird.x, self.x), self.x + self.WIDTH)
+        nearest_y = min(max(bird.y, top), bottom)
+        dx = bird.x - nearest_x
+        dy = bird.y - nearest_y
+        return dx * dx + dy * dy <= bird.RADIUS * bird.RADIUS
 
     def offscreen(self) -> bool:
         return self.x + self.WIDTH < 0
