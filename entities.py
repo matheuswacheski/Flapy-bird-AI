@@ -9,6 +9,7 @@ import torch
 from genome import Genome
 from settings import (
     BLACK,
+    CurriculumStage,
     DARK_GREEN,
     GREEN,
     GROUND,
@@ -75,12 +76,20 @@ class Bird:
 class Pipe:
     WIDTH = PIPE_WIDTH
 
-    def __init__(self, x: float, rng: random.Random | None = None):
+    def __init__(
+        self,
+        x: float,
+        rng: random.Random | None = None,
+        stage: CurriculumStage | None = None,
+    ):
         self.x = float(x)
         self._rng = rng or random
+        self.stage = stage
+        kinds = stage.pipe_kinds if stage else ("normal", "moving", "narrow", "wide")
+        weights = stage.pipe_weights if stage else (0.45, 0.20, 0.20, 0.15)
         self.kind = self._rng.choices(
-            ["normal", "moving", "narrow", "wide"],
-            weights=[0.45, 0.20, 0.20, 0.15],
+            kinds,
+            weights=weights,
             k=1,
         )[0]
 
@@ -110,6 +119,9 @@ class Pipe:
             self.osc_speed = 0.0
             self.speed_bonus = -0.15
 
+        gap_multiplier = stage.gap_multiplier if stage else 1.0
+        self.gap = int(self.gap * gap_multiplier)
+        self.speed_multiplier = stage.speed_multiplier if stage else 1.0
         self.height = self.base_height
         self.top = self.height
         self.bottom = self.height + self.gap
@@ -133,7 +145,7 @@ class Pipe:
         self.frame += 1
         self._sync_geometry()
 
-        self.current_speed = PIPE_BASE_SPEED + score * PIPE_SPEED_INCREASE + self.speed_bonus
+        self.current_speed = (PIPE_BASE_SPEED + score * PIPE_SPEED_INCREASE + self.speed_bonus) * self.speed_multiplier
         if self.current_speed > PIPE_MAX_SPEED:
             self.current_speed = PIPE_MAX_SPEED
 
