@@ -18,6 +18,7 @@ from settings import (
     GROUND_Y,
     MAX_FALL_SPEED,
     PIPE_START_X,
+    CurriculumStage,
     init_pygame,
 )
 from visuals import draw_window
@@ -39,6 +40,7 @@ def run_generation(
     render: bool = True,
     fps_limit: int | None = FPS,
     environment_seed: int | None = None,
+    curriculum_stage: CurriculumStage | None = None,
 ) -> Tuple[int, int]:
     win: pygame.Surface | None = None
     clock: pygame.time.Clock | None = None
@@ -47,7 +49,7 @@ def run_generation(
 
     pipe_rng = random.Random(environment_seed)
     birds = [Bird(g) for g in genomes]
-    pipes = [Pipe(PIPE_START_X, pipe_rng)]
+    pipes = [Pipe(PIPE_START_X, pipe_rng, curriculum_stage)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -95,7 +97,7 @@ def run_generation(
             pipes.remove(pipe)
 
         if not pipes:
-            pipes.append(Pipe(PIPE_START_X, pipe_rng))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng, curriculum_stage))
             reference_pipe = pipes[0]
 
         center = reference_pipe.gap_center
@@ -124,7 +126,7 @@ def run_generation(
             for bird in birds:
                 bird.score += 1
                 bird.genome.fitness += FITNESS_PASS_PIPE
-            pipes.append(Pipe(PIPE_START_X, pipe_rng))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng, curriculum_stage))
 
         base.move()
 
@@ -156,11 +158,12 @@ def replay_best(
     best_genome: Genome,
     max_frames: int = 6000,
     environment_seed: int | None = None,
+    curriculum_stage: CurriculumStage | None = None,
 ) -> None:
     win, clock = init_pygame()
     pipe_rng = random.Random(environment_seed)
     bird = Bird(best_genome.clone())
-    pipes = [Pipe(PIPE_START_X, pipe_rng)]
+    pipes = [Pipe(PIPE_START_X, pipe_rng, curriculum_stage)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -202,7 +205,7 @@ def replay_best(
             pipes.remove(pipe)
 
         if not pipes:
-            pipes.append(Pipe(PIPE_START_X, pipe_rng))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng, curriculum_stage))
 
         if bird.y < 0 or bird.y >= GROUND_Y:
             running = False
@@ -210,7 +213,7 @@ def replay_best(
         if add_pipe:
             score += 1
             bird.score += 1
-            pipes.append(Pipe(PIPE_START_X, pipe_rng))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng, curriculum_stage))
 
         base.move()
         best_score = max(best_score, score)
