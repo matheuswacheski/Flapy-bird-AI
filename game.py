@@ -158,8 +158,9 @@ def replay_best(
     environment_seed: int | None = None,
 ) -> None:
     win, clock = init_pygame()
+    pipe_rng = random.Random(environment_seed)
     bird = Bird(best_genome.clone())
-    pipes = [Pipe(PIPE_START_X)]
+    pipes = [Pipe(PIPE_START_X, pipe_rng)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -201,7 +202,7 @@ def replay_best(
             pipes.remove(pipe)
 
         if not pipes:
-            pipes.append(Pipe(PIPE_START_X))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng))
 
         if bird.y < 0 or bird.y >= GROUND_Y:
             running = False
@@ -209,7 +210,7 @@ def replay_best(
         if add_pipe:
             score += 1
             bird.score += 1
-            pipes.append(Pipe(PIPE_START_X))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng))
 
         base.move()
         best_score = max(best_score, score)
