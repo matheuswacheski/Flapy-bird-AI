@@ -7,6 +7,7 @@ from typing import List
 from genome import Genome
 from settings import (
     ELITE_MAX,
+    HALL_OF_FAME_SIZE,
     ELITE_MIN,
     ELITE_RATIO,
     MUTATION_RATE_MAX,
@@ -17,6 +18,7 @@ from settings import (
     MUTATION_SCALE_START,
     POPULATION_SIZE,
     SPECIES_THRESHOLD,
+    TOURNAMENT_SIZE,
 )
 from species import speciate
 
@@ -32,6 +34,7 @@ class GeneticPopulation:
     stagnation: int = 0
     last_species_count: int = 0
     last_generation_best_fitness: float = float("-inf")
+    hall_of_fame: List[Genome] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.genomes:
@@ -44,13 +47,23 @@ class GeneticPopulation:
         return max(0.0, g.fitness)
 
     def _pick_parent(self, members: List[Genome]) -> Genome:
-        if len(members) == 1:
-            return members[0]
+        """Select the fittest individual from a random tournament."""
+        tournament_size = min(TOURNAMENT_SIZE, len(members))
+        competitors = random.sample(members, tournament_size)
+        return max(competitors, key=lambda genome: genome.fitness)
 
-        ordered = sorted(members, key=lambda g: g.fitness, reverse=True)
-        top = ordered[: max(2, len(ordered) // 2)]
-        weights = [self._positive_fitness(g) + 0.01 for g in top]
-        return random.choices(top, weights=weights, k=1)[0]
+    @staticmethod
+    def _clone_with_fitness(genome: Genome) -> Genome:
+        clone = genome.clone()
+        clone.fitness = genome.fitness
+        return clone
+
+    def _update_hall_of_fame(self, candidates: List[Genome]) -> None:
+        combined = [*self.hall_of_fame, *candidates]
+        combined.sort(key=lambda genome: genome.fitness, reverse=True)
+        self.hall_of_fame = [
+            self._clone_with_fitness(genome) for genome in combined[:HALL_OF_FAME_SIZE]
+        ]
 
     def _adapt_mutation(self, improved: bool) -> None:
         if improved:
@@ -67,6 +80,7 @@ class GeneticPopulation:
     def evolve(self) -> int:
         ordered = sorted(self.genomes, key=lambda g: g.fitness, reverse=True)
         generation_best = ordered[0]
+        self._update_hall_of_fame(ordered)
         self.last_generation_best_fitness = generation_best.fitness
         improved = self.best_genome is None or generation_best.fitness > self.best_fitness
 
@@ -83,7 +97,9 @@ class GeneticPopulation:
         elite_count = max(ELITE_MIN, int(self.size * ELITE_RATIO))
         elite_count = min(elite_count, ELITE_MAX, self.size)
 
-        elites = [g.clone() for g in ordered[:elite_count]]
+        elite_candidates = [*self.hall_of_fame, *ordered]
+        elite_candidates.sort(key=lambda genome: genome.fitness, reverse=True)
+        elites = [g.clone() for g in elite_candidates[:elite_count]]
         next_genomes: List[Genome] = elites[:]
 
         species_weights = []
