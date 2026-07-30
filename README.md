@@ -53,3 +53,12 @@ O gráfico separa a métrica da geração do melhor resultado histórico. Apenas
 
 O treinamento visual respeita `FPS_LIMIT`; no modo headless não há limite de
 FPS e o PyGame não é inicializado.
+
+
+## Aprendizado progressivo
+
+O treino usa seleção por torneio, um Hall of Fame com os melhores genomas
+validados e um currículo de quatro estágios. Cada genoma é avaliado nas mesmas
+seeds; a fitness de seleção é a média menos uma penalidade pela variação entre
+cenários. Ajuste os estágios, o tamanho do Hall of Fame e a penalidade de
+variância em `settings.py`.
