@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from settings import BEST_GENOME_PATH, DEFAULT_SEED, MAX_GENERATIONS
+from settings import BEST_GENOME_PATH, DEFAULT_SEED, EVALUATION_SEEDS, MAX_GENERATIONS
 from train import run_training
 
 
@@ -27,6 +27,13 @@ def parse_args() -> argparse.Namespace:
         default=BEST_GENOME_PATH,
         help="Arquivo de destino do melhor genoma.",
     )
+    parser.add_argument(
+        "--evaluation-seeds",
+        type=int,
+        nargs="+",
+        default=EVALUATION_SEEDS,
+        help="Seeds dos cenários usados para avaliar toda geração.",
+    )
     parser.add_argument("--no-plot", action="store_true", help="Não mostra o gráfico final.")
     parser.add_argument("--no-replay", action="store_true", help="Não reproduz o campeão.")
     return parser.parse_args()
@@ -42,4 +49,5 @@ if __name__ == "__main__":
         max_generations=args.generations,
         plot_history=not (args.headless or args.no_plot),
         replay=not (args.headless or args.no_replay),
+        evaluation_seeds=tuple(args.evaluation_seeds),
     )
