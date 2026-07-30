@@ -31,6 +31,7 @@ class GeneticPopulation:
     mutation_scale: float = MUTATION_SCALE_START
     stagnation: int = 0
     last_species_count: int = 0
+    last_generation_best_fitness: float = float("-inf")
 
     def __post_init__(self) -> None:
         if not self.genomes:
@@ -51,28 +52,30 @@ class GeneticPopulation:
         weights = [self._positive_fitness(g) + 0.01 for g in top]
         return random.choices(top, weights=weights, k=1)[0]
 
-    def _adapt_mutation(self, generation_best: float) -> None:
-        if generation_best > self.best_fitness:
-            self.best_fitness = generation_best
+    def _adapt_mutation(self, improved: bool) -> None:
+        if improved:
             self.stagnation = 0
             self.mutation_rate = max(MUTATION_RATE_MIN, self.mutation_rate * 0.97)
             self.mutation_scale = max(MUTATION_SCALE_MIN, self.mutation_scale * 0.98)
-        else:
-            self.stagnation += 1
-            if self.stagnation >= 2:
-                self.mutation_rate = min(MUTATION_RATE_MAX, self.mutation_rate * 1.08)
-                self.mutation_scale = min(MUTATION_SCALE_MAX, self.mutation_scale * 1.05)
+            return
+
+        self.stagnation += 1
+        if self.stagnation >= 2:
+            self.mutation_rate = min(MUTATION_RATE_MAX, self.mutation_rate * 1.08)
+            self.mutation_scale = min(MUTATION_SCALE_MAX, self.mutation_scale * 1.05)
 
     def evolve(self) -> int:
         ordered = sorted(self.genomes, key=lambda g: g.fitness, reverse=True)
         generation_best = ordered[0]
+        self.last_generation_best_fitness = generation_best.fitness
+        improved = self.best_genome is None or generation_best.fitness > self.best_fitness
 
-        if self.best_genome is None or generation_best.fitness > self.best_fitness:
+        if improved:
             self.best_genome = generation_best.clone()
             self.best_fitness = generation_best.fitness
             self.best_genome.fitness = generation_best.fitness
 
-        self._adapt_mutation(generation_best.fitness)
+        self._adapt_mutation(improved)
 
         species = speciate(ordered, SPECIES_THRESHOLD)
         self.last_species_count = len(species)
