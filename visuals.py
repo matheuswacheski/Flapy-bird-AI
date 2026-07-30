@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,16 +52,38 @@ def draw_window(
     pygame.display.update()
 
 
-def plot_training_history(scores: List[int]) -> None:
-    generations = np.arange(1, len(scores) + 1)
+def plot_training_history(
+    generation_scores: Sequence[float],
+    best_scores: Sequence[int],
+    generation_fitnesses: Sequence[float],
+    best_fitnesses: Sequence[float],
+) -> None:
+    generations = np.arange(1, len(generation_scores) + 1)
+    figure, (score_axis, fitness_axis) = plt.subplots(2, 1, figsize=(10, 9), sharex=True)
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(generations, scores, marker="o")
-    plt.scatter(generations, scores)
+    score_axis.plot(generations, generation_scores, marker="o", label="Média da geração")
+    score_axis.plot(generations, best_scores, marker="o", label="Melhor score acumulado")
+    score_axis.set_ylabel("Score")
+    score_axis.set_title("Evolução por geração")
+    score_axis.grid(True)
+    score_axis.legend()
 
-    plt.xlabel("Geração")
-    plt.ylabel("Score")
-    plt.title("Score por geração")
-    plt.grid(True)
-    plt.tight_layout()
+    fitness_axis.plot(
+        generations,
+        generation_fitnesses,
+        marker="o",
+        label="Melhor fitness da geração",
+    )
+    fitness_axis.plot(
+        generations,
+        best_fitnesses,
+        marker="o",
+        label="Melhor fitness acumulado",
+    )
+    fitness_axis.set_xlabel("Geração")
+    fitness_axis.set_ylabel("Fitness")
+    fitness_axis.grid(True)
+    fitness_axis.legend()
+
+    figure.tight_layout()
     plt.show()
