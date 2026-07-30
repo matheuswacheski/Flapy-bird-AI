@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -56,6 +57,34 @@ FITNESS_DEATH_PENALTY = 6.0
 
 DEFAULT_SEED: int | None = None
 EVALUATION_SEEDS = (42, 137, 911)
+ROBUST_FITNESS_VARIANCE_PENALTY = 0.20
+TOURNAMENT_SIZE = 4
+HALL_OF_FAME_SIZE = 10
+
+
+@dataclass(frozen=True)
+class CurriculumStage:
+    name: str
+    minimum_best_score: int
+    pipe_kinds: tuple[str, ...]
+    pipe_weights: tuple[float, ...]
+    speed_multiplier: float
+    gap_multiplier: float
+
+
+CURRICULUM_STAGES = (
+    CurriculumStage("Fundamentos", 0, ("normal", "wide"), (0.70, 0.30), 0.75, 1.30),
+    CurriculumStage("Intermediário", 6, ("normal", "narrow", "wide"), (0.55, 0.20, 0.25), 0.90, 1.10),
+    CurriculumStage("Avançado", 12, ("normal", "moving", "narrow", "wide"), (0.45, 0.20, 0.20, 0.15), 1.00, 1.00),
+    CurriculumStage("Especialista", 20, ("normal", "moving", "narrow"), (0.35, 0.40, 0.25), 1.15, 0.88),
+)
+
+
+def curriculum_stage_for(best_score: int) -> CurriculumStage:
+    return max(
+        (stage for stage in CURRICULUM_STAGES if best_score >= stage.minimum_best_score),
+        key=lambda stage: stage.minimum_best_score,
+    )
 RENDER_TRAINING = True
 FPS_LIMIT: int | None = FPS
 BEST_GENOME_PATH = Path("models/best_genome.pt")
