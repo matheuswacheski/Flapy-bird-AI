@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
+import random
+
 import pygame
 
 from entities import Base, Bird, Pipe
@@ -36,14 +38,16 @@ def run_generation(
     mutation_rate: float,
     render: bool = True,
     fps_limit: int | None = FPS,
+    environment_seed: int | None = None,
 ) -> Tuple[int, int]:
     win: pygame.Surface | None = None
     clock: pygame.time.Clock | None = None
     if render:
         win, clock = init_pygame()
 
+    pipe_rng = random.Random(environment_seed)
     birds = [Bird(g) for g in genomes]
-    pipes = [Pipe(PIPE_START_X)]
+    pipes = [Pipe(PIPE_START_X, pipe_rng)]
     base = Base(GROUND_Y)
 
     score = 0
@@ -91,7 +95,7 @@ def run_generation(
             pipes.remove(pipe)
 
         if not pipes:
-            pipes.append(Pipe(PIPE_START_X))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng))
             reference_pipe = pipes[0]
 
         center = reference_pipe.gap_center
@@ -120,7 +124,7 @@ def run_generation(
             for bird in birds:
                 bird.score += 1
                 bird.genome.fitness += FITNESS_PASS_PIPE
-            pipes.append(Pipe(PIPE_START_X))
+            pipes.append(Pipe(PIPE_START_X, pipe_rng))
 
         base.move()
 
@@ -148,7 +152,11 @@ def run_generation(
     return score, best_score_global
 
 
-def replay_best(best_genome: Genome, max_frames: int = 6000) -> None:
+def replay_best(
+    best_genome: Genome,
+    max_frames: int = 6000,
+    environment_seed: int | None = None,
+) -> None:
     win, clock = init_pygame()
     bird = Bird(best_genome.clone())
     pipes = [Pipe(PIPE_START_X)]
